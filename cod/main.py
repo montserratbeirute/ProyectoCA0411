@@ -40,8 +40,7 @@ print(df_loan.describe().loc[['min', '25%', '50%', '75%', 'max']])
 # Análisis variables cuantitativas -------------------------------------------
 
 # Filtrar solo columnas numéricas
-datos_cuantitativos = df_loan.select_dtypes(include=['number'])
-
+datos_cuantitativos = df_loan.select_dtypes(include=['number']).drop(columns=['credit.policy', 'not.fully.paid'])
 
 # Configurar el tamaño del gráfico
 plt.figure(figsize=(12, 6))
