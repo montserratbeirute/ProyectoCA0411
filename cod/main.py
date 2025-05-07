@@ -221,3 +221,57 @@ df_loan['delinq.2yrs_binned'] = df_loan['delinq.2yrs'].apply(lambda x: '0' if x 
 
 # 3. Transformar `revol.bal` con logaritmo para reducir asimetría
 df_loan['log.revol.bal'] = np.log1p(df_loan['revol.bal'])  # log(x + 1) evita log(0)
+
+
+# Aplicación del modelo AdaBoost  ---------------------------------------------
+from sklearn.model_selection import train_test_split # para separar los datos en entrenamiento y prueba
+from sklearn.preprocessing import OneHotEncoder # para trabajar con la variable categórica
+from sklearn.compose import ColumnTransformer # se usa junto con el OneHotEncoder
+from sklearn.pipeline import Pipeline # para procesar datos y crear el modelo como un solo objeto
+from sklearn.ensemble import AdaBoostClassifier # clasificador
+from sklearn.tree import DecisionTreeClassifier # para el clasificador débil del AdaBoost
+from sklearn.metrics import classification_report, confusion_matrix # para mostrar resultados
+from mlxtend.plotting import plot_confusion_matrix # para graficar matriz de confusión
+from sklearn.ensemble import RandomForestClassifier
+
+# Separar en dos df's: X variables de entrada, Y variable de salida (not.fully.paid)
+X = df_loan.drop("not.fully.paid", axis = 1)
+Y = df_loan["not.fully.paid"]
+
+variables_categoricas = ['purpose', 'delinq.2yrs_binned']  # solo 'purpose' es categórica
+variables_numericas = X.drop(columns=variables_categoricas).columns.tolist()
+
+# Transformador de columnas categóricas en dummies
+preprocesar_datos = ColumnTransformer([
+    ("cat", OneHotEncoder(drop="first"), variables_categoricas)], 
+                                      remainder = "passthrough")
+
+# Clasificador AdaBoost con árbol de decisión
+adaboost = AdaBoostClassifier(
+    estimator = DecisionTreeClassifier(max_depth=3, class_weight="balanced"), # modelo débil usando pesos
+    n_estimators = 50, # número de modelos débiles 
+    learning_rate = 0.005,
+    random_state = 123 # semilla del generador aleatorio
+)
+
+# Crear el objeto Pipeline
+pipeline_adaboost = Pipeline([
+    ("preprocesar", preprocesar_datos),
+    ("clasificador", adaboost)
+])
+
+# Separar datos en train y test
+X_train, X_test, Y_train, Y_test = train_test_split(
+    X, Y, test_size=0.2, random_state=123)
+
+# Entrenar el modelo
+pipeline_adaboost.fit(X_train, Y_train)
+
+# Predecir
+Y_pred = pipeline_adaboost.predict(X_test)
+
+# Resultados
+matriz_confusion = confusion_matrix(Y_test, Y_pred)
+plot_confusion_matrix(conf_mat=matriz_confusion)
+
+print("\nReporte de clasificación:\n", classification_report(Y_test, Y_pred))
