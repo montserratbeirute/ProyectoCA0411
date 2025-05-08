@@ -271,7 +271,26 @@ pipeline_adaboost.fit(X_train, Y_train)
 Y_pred = pipeline_adaboost.predict(X_test)
 
 # Resultados
+## Matriz de confusión
 matriz_confusion = confusion_matrix(Y_test, Y_pred)
 plot_confusion_matrix(conf_mat=matriz_confusion)
 
 print("\nReporte de clasificación:\n", classification_report(Y_test, Y_pred))
+
+## Gráfico de Importancias
+preprocesador = pipeline_adaboost.named_steps['preprocesar']
+modelo = pipeline_adaboost.named_steps['clasificador']
+nombres_variables = preprocesador.get_feature_names_out()
+importancias = modelo.feature_importances_
+resumen_importancias = pd.DataFrame({
+    'Variable': nombres_variables,
+    'Importancia': importancias
+    }).sort_values(by='Importancia', ascending=False)
+
+# Gráfico de barras
+plt.figure(figsize=(10,6))
+plt.barh(resumen_importancias['Variable'], resumen_importancias['Importancia'])
+plt.gca().invert_yaxis()
+plt.title("Importancia de las variables - AdaBoost")
+plt.tight_layout()
+plt.show()
